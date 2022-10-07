@@ -128,8 +128,7 @@ mod tests {
                 ])
             }
         };
-        println!("{}", &t.pp());
-        panic!()
+        assert_eq!(t.pp(), "\nab\nc\nd")
     }
 
     // #[test]
