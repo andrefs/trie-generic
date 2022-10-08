@@ -1,6 +1,7 @@
 pub mod trie {
     use std::collections::BTreeMap;
     use std::string::String;
+    use std::cell::Cell;
 
     pub struct TNode<T> {
         pub is_terminal: bool,
@@ -19,22 +20,22 @@ pub mod trie {
     }
 
     pub struct Trie<T> {
-        pub root: TNode<T>,
+        pub root: Cell<TNode<T>>,
     }
 
     impl<T> Trie<T> {
         pub fn new(content: Option<T>) -> Trie<T> {
             Trie {
-                root: TNode::new(content),
+                root: Cell::new(TNode::new(content)),
             }
         }
 
-        //pub fn add(&mut self, s: &str, content: Option<T>) {
-        //    add_fn(s, content, &mut self.root);
-        //}
+        pub fn add(&mut self, s: &str, content: Option<T>) {
+            add_fn(self.root.get_mut(), s, content);
+        }
 
-        pub fn pp(& self) -> String {
-            pp_fn(&self.root, 0)
+        pub fn pp(&mut self) -> String {
+            pp_fn(self.root.get_mut(), 0)
         }
 
 
@@ -65,26 +66,27 @@ pub mod trie {
         res
     }
 
-    //fn add_fn<T>(s: &str, content: Option<T>, node: &mut TNode<T>) {
-    //    if s.is_empty() {
-    //        node.is_terminal = true;
-    //        node.content = content;
-    //        return;
-    //    }
-    //    let mut chars = s.chars();
-    //    let c = chars.next().unwrap();
-    //    let rest = chars.as_str();
+    fn add_fn<T>(node: &mut TNode<T>, s: &str, content: Option<T>) {
+        if s.is_empty() {
+            node.is_terminal = true;
+            node.content = content;
+            return;
+        }
+        let mut chars = s.chars();
+        let c = chars.next().unwrap();
+        let rest = chars.as_str();
 
-    //    node.children.entry(c).or_insert(TNode::new(None));
-    //    //let mut subtrie = node.children.get(&c).expect("char must exist");
-    //    //add_fn(rest, content, subtrie);
-    //}
+        node.children.entry(c).or_insert_with(|| TNode::new(None));
+        let subtrie = node.children.get_mut(&c).expect("char must exist");
+        add_fn(subtrie, rest, content);
+    }
 
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::cell::Cell;
 
     use super::*;
     use trie::*;
@@ -99,13 +101,13 @@ mod tests {
 
     #[test]
     fn pretty_print(){
-        let t: Trie<u8> = Trie {
-            root: TNode {
+        let mut t: Trie<u8> = Trie {
+            root: Cell::new(TNode {
                 is_terminal: false,
                 content: None,
                 children: BTreeMap::from([
                     ('a', TNode {
-                        is_terminal: false,
+                        is_terminal: true,
                         content: None,
                         children: BTreeMap::from([
                             ('b', TNode {
@@ -126,37 +128,29 @@ mod tests {
                         children: BTreeMap::new()
                     }),
                 ])
-            }
+            })
         };
-        assert_eq!(t.pp(), "\nab\nc\nd")
+        assert_eq!(t.pp(), "\na\n b\nc\nd")
     }
 
-    // #[test]
-    // fn add_empty_string(){
-    //     let mut t = Trie::new(None);
-    //     t.add("", Some(1));
-    //     assert_eq!(t.root.content, Some(1));
-    // }
+    #[test]
+    fn add_empty_string(){
+        let mut t = Trie::new(None);
+        t.add("", Some(1));
+        assert_eq!(t.root.get_mut().content, Some(1));
+    }
 
-    // #[test]
-    // fn add_single_char_string(){
-    //     let mut t = Trie::new(None);
-    //     t.add("a", Some(1));
-    //     // assert_eq!(t.root["a"].content, Some(1));
-    //     panic!()
-    // }
+    #[test]
+    fn add_single_char_string(){
+        let mut t = Trie::new(None);
+        t.add("a", Some(1));
+        t.add("ab", Some(1));
+        t.add("c", Some(1));
+        t.add("d", Some(1));
+        println!("{}", t.pp());
+        assert_eq!(t.pp(), "\na\n b\nc\nd")
+    }
 }
 
 
 
-
-
-    //     fn pp(&self){
-    //         pp_fn(&self.root, 0);
-    //     }
-    // }
-
-
-    // fn pp_fn<T>(node: &TNode<T>, indent: u8){
-
-    // }
