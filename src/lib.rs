@@ -23,6 +23,23 @@ pub mod trie {
         pub root: Cell<TNode<T>>,
     }
 
+    pub struct LongestPrefFlags {
+        is_terminal: bool,
+        full_match: bool,
+    }
+
+    struct LongestPrefOpts {
+        must_be_terminal: bool,
+        must_match_fully: bool,
+    }
+    
+    type LongestPrefResult<'a, T> = Option<(&'a TNode<T>, &'a str, LongestPrefFlags)>;
+
+    struct LongestPrefixAcc<'a, T> {
+      string: &'a str,
+      node: TNode<T>
+    }
+
     impl<T> Trie<T> {
         pub fn new(content: Option<T>) -> Trie<T> {
             Trie {
@@ -31,14 +48,53 @@ pub mod trie {
         }
 
         pub fn add(&mut self, s: &str, content: Option<T>) {
-            add_fn(self.root.get_mut(), s, content);
+            add_fn(self.root.get_mut(), s, content)
         }
 
         pub fn pp(&mut self) -> String {
             pp_fn(self.root.get_mut(), 0)
         }
 
+        pub fn longest_prefix<'a>(&'a mut self, s: &'a str, must_be_terminal: bool) -> LongestPrefResult<T> {
+            let lpo = LongestPrefOpts { must_be_terminal, must_match_fully: false};
+            longest_prefix_fn(self.root.get_mut(), s, None, lpo)
+        }
 
+
+    }
+    
+    fn longest_prefix_fn<'a, T>(cur_node: &'a TNode<T>, cur_str: &'a str, last_terminal: Option<LongestPrefixAcc<'a, T>>, opts: LongestPrefOpts) -> LongestPrefResult<'a, T> {
+        if cur_str.is_empty(){
+            if opts.must_be_terminal && !cur_node.is_terminal {
+                return match last_terminal {
+                    None => None,
+                    Some(t) => Some((&t.node, t.string, LongestPrefFlags { is_terminal: true, full_match: false})),
+                };
+            }
+            return Some((cur_node, cur_str, LongestPrefFlags { is_terminal: cur_node.is_terminal, full_match: true}))
+        }
+
+        let mut chars = cur_str.chars();
+        let ch = chars.next().unwrap();
+        let new_str = chars.as_str();
+
+        if cur_node.children.is_empty() {
+            if opts.must_match_fully {
+                return None;
+            }
+            if opts.must_be_terminal && !cur_node.is_terminal {
+                return match last_terminal {
+                    None => None,
+                    Some(t) => Some((&t.node, t.string, LongestPrefFlags { is_terminal: true, full_match: false})),
+                };
+            }
+            return Some((cur_node, cur_str, LongestPrefFlags { is_terminal: cur_node.is_terminal, full_match: false}))
+        }
+        return if !opts.must_be_terminal || cur_node.is_terminal {
+            longest_prefix_fn(&cur_node.children[&ch], new_str, last_terminal, opts)
+        } else {
+            longest_prefix_fn(&cur_node.children[&ch], new_str, last_terminal, opts)
+        }
     }
 
     fn pp_fn<T>(node: &TNode<T>, indent: u8) -> String {
