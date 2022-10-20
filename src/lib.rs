@@ -35,10 +35,6 @@ pub mod trie {
 
     type LongestPrefResult = Option<(Vec<char>, LongestPrefFlags)>;
 
-    struct LongestPrefixAcc {
-        string: Vec<char>,
-    }
-
     impl<T> Trie<T> {
         pub fn new(content: Option<T>) -> Trie<T> {
             Trie {
@@ -63,22 +59,24 @@ pub mod trie {
                 must_be_terminal,
                 must_match_fully: false,
             };
-            longest_prefix_fn(self.root.get_mut(), s, None, lpo)
+            longest_prefix_fn(self.root.get_mut(), s, None, "".to_owned(), lpo)
         }
     }
 
     fn longest_prefix_fn<'a, T>(
         cur_node: &'a TNode<T>,
-        cur_str: &'a str,
-        last_terminal: Option<LongestPrefixAcc>,
+        str_left: &'a str,
+        last_terminal: Option<Vec<char>>,
+        cur_pref: String,
         opts: LongestPrefOpts,
     ) -> LongestPrefResult {
-        if cur_str.is_empty() {
+        // end of searched string
+        if str_left.is_empty() {
             if opts.must_be_terminal && !cur_node.is_terminal {
                 return match last_terminal {
                     None => None,
                     Some(t) => Some((
-                        t.string,
+                        t,
                         LongestPrefFlags {
                             is_terminal: true,
                             full_match: false,
@@ -87,7 +85,7 @@ pub mod trie {
                 };
             }
             return Some((
-                cur_str.chars().collect(),
+                str_left.chars().collect(),
                 LongestPrefFlags {
                     is_terminal: cur_node.is_terminal,
                     full_match: true,
@@ -95,11 +93,11 @@ pub mod trie {
             ));
         }
 
-        let mut chars = cur_str.chars();
+        let mut chars = str_left.chars();
         let ch = chars.next().unwrap();
         let new_str = chars.as_str();
 
-        if cur_node.children.is_empty() {
+        if cur_node.children.is_empty() || !cur_node.children.contains_key(&ch) {
             if opts.must_match_fully {
                 return None;
             }
@@ -107,7 +105,7 @@ pub mod trie {
                 return match last_terminal {
                     None => None,
                     Some(t) => Some((
-                        t.string,
+                        t,
                         LongestPrefFlags {
                             is_terminal: true,
                             full_match: false,
@@ -116,7 +114,7 @@ pub mod trie {
                 };
             }
             return Some((
-                cur_str.chars().collect(),
+                cur_pref.chars().collect(),
                 LongestPrefFlags {
                     is_terminal: cur_node.is_terminal,
                     full_match: false,
@@ -124,9 +122,21 @@ pub mod trie {
             ));
         }
         return if !opts.must_be_terminal || cur_node.is_terminal {
-            longest_prefix_fn(&cur_node.children[&ch], new_str, last_terminal, opts)
+            longest_prefix_fn(
+                &cur_node.children[&ch],
+                new_str,
+                last_terminal,
+                format!("{}{}", cur_pref, ch),
+                opts,
+            )
         } else {
-            longest_prefix_fn(&cur_node.children[&ch], new_str, last_terminal, opts)
+            longest_prefix_fn(
+                &cur_node.children[&ch],
+                new_str,
+                last_terminal,
+                format!("{}{}", cur_pref, ch),
+                opts,
+            )
         };
     }
 
@@ -247,5 +257,16 @@ mod tests {
         t.add("d", Some(1));
         println!("{}", t.pp());
         assert_eq!(t.pp(), "\na\n b\nc\nd")
+    }
+
+    #[test]
+    fn find_longest_prefix() {
+        let mut t = Trie::new(None);
+        t.add("this is words", Some(1));
+        t.add("this is more", Some(1));
+        t.add("this is even more", Some(1));
+        let pref = t.longest_prefix("this is mine", false).unwrap().0;
+        let expected: Vec<char> = "this is m".chars().collect();
+        assert_eq!(pref, expected);
     }
 }
