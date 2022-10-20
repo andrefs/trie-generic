@@ -1,12 +1,12 @@
 pub mod trie {
     use std::cell::Cell;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use std::string::String;
 
     pub struct TNode<T> {
         pub is_terminal: bool,
         pub content: Option<T>,
-        pub children: HashMap<char, TNode<T>>,
+        pub children: BTreeMap<char, TNode<T>>,
     }
 
     impl<T> TNode<T> {
@@ -14,7 +14,7 @@ pub mod trie {
             TNode {
                 is_terminal: false,
                 content,
-                children: HashMap::new(),
+                children: BTreeMap::new(),
             }
         }
     }
@@ -35,9 +35,8 @@ pub mod trie {
 
     type LongestPrefResult = Option<(Vec<char>, LongestPrefFlags)>;
 
-    struct LongestPrefixAcc<'a, T> {
-        string: &'a str,
-        node: TNode<T>,
+    struct LongestPrefixAcc {
+        string: Vec<char>,
     }
 
     impl<T> Trie<T> {
@@ -71,7 +70,7 @@ pub mod trie {
     fn longest_prefix_fn<'a, T>(
         cur_node: &'a TNode<T>,
         cur_str: &'a str,
-        last_terminal: Option<LongestPrefixAcc<'a, T>>,
+        last_terminal: Option<LongestPrefixAcc>,
         opts: LongestPrefOpts,
     ) -> LongestPrefResult {
         if cur_str.is_empty() {
@@ -79,7 +78,7 @@ pub mod trie {
                 return match last_terminal {
                     None => None,
                     Some(t) => Some((
-                        t.string.chars().collect(),
+                        t.string,
                         LongestPrefFlags {
                             is_terminal: true,
                             full_match: false,
@@ -108,7 +107,7 @@ pub mod trie {
                 return match last_terminal {
                     None => None,
                     Some(t) => Some((
-                        t.string.chars().collect(),
+                        t.string,
                         LongestPrefFlags {
                             is_terminal: true,
                             full_match: false,
@@ -175,7 +174,7 @@ pub mod trie {
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
-    use std::collections::{BTreeMap, HashMap};
+    use std::collections::BTreeMap;
 
     use super::*;
     use trie::*;
@@ -194,18 +193,18 @@ mod tests {
             root: Cell::new(TNode {
                 is_terminal: false,
                 content: None,
-                children: HashMap::from([
+                children: BTreeMap::from([
                     (
                         'a',
                         TNode {
                             is_terminal: true,
                             content: None,
-                            children: HashMap::from([(
+                            children: BTreeMap::from([(
                                 'b',
                                 TNode {
                                     is_terminal: true,
                                     content: None,
-                                    children: HashMap::new(),
+                                    children: BTreeMap::new(),
                                 },
                             )]),
                         },
@@ -215,7 +214,7 @@ mod tests {
                         TNode {
                             is_terminal: true,
                             content: None,
-                            children: HashMap::new(),
+                            children: BTreeMap::new(),
                         },
                     ),
                     (
@@ -223,7 +222,7 @@ mod tests {
                         TNode {
                             is_terminal: true,
                             content: None,
-                            children: HashMap::new(),
+                            children: BTreeMap::new(),
                         },
                     ),
                 ]),
