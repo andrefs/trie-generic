@@ -1,12 +1,12 @@
 pub mod trie {
-    use std::collections::BTreeMap;
-    use std::string::String;
     use std::cell::Cell;
+    use std::collections::HashMap;
+    use std::string::String;
 
     pub struct TNode<T> {
         pub is_terminal: bool,
         pub content: Option<T>,
-        pub children: BTreeMap<char, TNode<T>>,
+        pub children: HashMap<char, TNode<T>>,
     }
 
     impl<T> TNode<T> {
@@ -14,7 +14,7 @@ pub mod trie {
             TNode {
                 is_terminal: false,
                 content,
-                children: BTreeMap::new(),
+                children: HashMap::new(),
             }
         }
     }
@@ -32,12 +32,12 @@ pub mod trie {
         must_be_terminal: bool,
         must_match_fully: bool,
     }
-    
-    type LongestPrefResult<'a, T> = Option<(&'a TNode<T>, &'a str, LongestPrefFlags)>;
+
+    type LongestPrefResult = Option<(Vec<char>, LongestPrefFlags)>;
 
     struct LongestPrefixAcc<'a, T> {
-      string: &'a str,
-      node: TNode<T>
+        string: &'a str,
+        node: TNode<T>,
     }
 
     impl<T> Trie<T> {
@@ -55,23 +55,45 @@ pub mod trie {
             pp_fn(self.root.get_mut(), 0)
         }
 
-        pub fn longest_prefix<'a>(&'a mut self, s: &'a str, must_be_terminal: bool) -> LongestPrefResult<T> {
-            let lpo = LongestPrefOpts { must_be_terminal, must_match_fully: false};
+        pub fn longest_prefix<'a>(
+            &'a mut self,
+            s: &'a str,
+            must_be_terminal: bool,
+        ) -> LongestPrefResult {
+            let lpo = LongestPrefOpts {
+                must_be_terminal,
+                must_match_fully: false,
+            };
             longest_prefix_fn(self.root.get_mut(), s, None, lpo)
         }
-
-
     }
-    
-    fn longest_prefix_fn<'a, T>(cur_node: &'a TNode<T>, cur_str: &'a str, last_terminal: Option<LongestPrefixAcc<'a, T>>, opts: LongestPrefOpts) -> LongestPrefResult<'a, T> {
-        if cur_str.is_empty(){
+
+    fn longest_prefix_fn<'a, T>(
+        cur_node: &'a TNode<T>,
+        cur_str: &'a str,
+        last_terminal: Option<LongestPrefixAcc<'a, T>>,
+        opts: LongestPrefOpts,
+    ) -> LongestPrefResult {
+        if cur_str.is_empty() {
             if opts.must_be_terminal && !cur_node.is_terminal {
                 return match last_terminal {
                     None => None,
-                    Some(t) => Some((&t.node, t.string, LongestPrefFlags { is_terminal: true, full_match: false})),
+                    Some(t) => Some((
+                        t.string.chars().collect(),
+                        LongestPrefFlags {
+                            is_terminal: true,
+                            full_match: false,
+                        },
+                    )),
                 };
             }
-            return Some((cur_node, cur_str, LongestPrefFlags { is_terminal: cur_node.is_terminal, full_match: true}))
+            return Some((
+                cur_str.chars().collect(),
+                LongestPrefFlags {
+                    is_terminal: cur_node.is_terminal,
+                    full_match: true,
+                },
+            ));
         }
 
         let mut chars = cur_str.chars();
@@ -85,16 +107,28 @@ pub mod trie {
             if opts.must_be_terminal && !cur_node.is_terminal {
                 return match last_terminal {
                     None => None,
-                    Some(t) => Some((&t.node, t.string, LongestPrefFlags { is_terminal: true, full_match: false})),
+                    Some(t) => Some((
+                        t.string.chars().collect(),
+                        LongestPrefFlags {
+                            is_terminal: true,
+                            full_match: false,
+                        },
+                    )),
                 };
             }
-            return Some((cur_node, cur_str, LongestPrefFlags { is_terminal: cur_node.is_terminal, full_match: false}))
+            return Some((
+                cur_str.chars().collect(),
+                LongestPrefFlags {
+                    is_terminal: cur_node.is_terminal,
+                    full_match: false,
+                },
+            ));
         }
         return if !opts.must_be_terminal || cur_node.is_terminal {
             longest_prefix_fn(&cur_node.children[&ch], new_str, last_terminal, opts)
         } else {
             longest_prefix_fn(&cur_node.children[&ch], new_str, last_terminal, opts)
-        }
+        };
     }
 
     fn pp_fn<T>(node: &TNode<T>, indent: u8) -> String {
@@ -102,7 +136,7 @@ pub mod trie {
         let iter = node.children.iter();
 
         if node.children.len() == 1 {
-            let (k,v) = iter.last().unwrap();
+            let (k, v) = iter.last().unwrap();
             if node.is_terminal {
                 res.push('\n');
                 res.push_str(&" ".repeat(indent.into()));
@@ -110,13 +144,13 @@ pub mod trie {
             } else {
                 res.push_str(&k.to_string())
             }
-            res.push_str(&pp_fn(v, indent+1));
+            res.push_str(&pp_fn(v, indent + 1));
         } else {
             for (k, v) in iter {
                 res.push('\n');
                 res.push_str(&" ".repeat(indent.into()));
                 res.push_str(&k.to_string());
-                res.push_str(&pp_fn(v, indent+1));
+                res.push_str(&pp_fn(v, indent + 1));
             }
         }
         res
@@ -136,19 +170,18 @@ pub mod trie {
         let subtrie = node.children.get_mut(&c).expect("char must exist");
         add_fn(subtrie, rest, content);
     }
-
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
     use std::cell::Cell;
+    use std::collections::{BTreeMap, HashMap};
 
     use super::*;
     use trie::*;
 
     #[test]
-    fn create_tnode(){
+    fn create_tnode() {
         let n = TNode::new(Some(1));
         assert_eq!(n.content, Some(1));
         assert!(!n.is_terminal);
@@ -156,48 +189,58 @@ mod tests {
     }
 
     #[test]
-    fn pretty_print(){
+    fn pretty_print() {
         let mut t: Trie<u8> = Trie {
             root: Cell::new(TNode {
                 is_terminal: false,
                 content: None,
-                children: BTreeMap::from([
-                    ('a', TNode {
-                        is_terminal: true,
-                        content: None,
-                        children: BTreeMap::from([
-                            ('b', TNode {
-                                is_terminal: true,
-                                content: None,
-                                children: BTreeMap::new()
-                            })
-                        ])
-                    }),
-                    ('c', TNode {
-                        is_terminal: true,
-                        content: None,
-                        children: BTreeMap::new()
-                    }),
-                    ('d', TNode {
-                        is_terminal: true,
-                        content: None,
-                        children: BTreeMap::new()
-                    }),
-                ])
-            })
+                children: HashMap::from([
+                    (
+                        'a',
+                        TNode {
+                            is_terminal: true,
+                            content: None,
+                            children: HashMap::from([(
+                                'b',
+                                TNode {
+                                    is_terminal: true,
+                                    content: None,
+                                    children: HashMap::new(),
+                                },
+                            )]),
+                        },
+                    ),
+                    (
+                        'c',
+                        TNode {
+                            is_terminal: true,
+                            content: None,
+                            children: HashMap::new(),
+                        },
+                    ),
+                    (
+                        'd',
+                        TNode {
+                            is_terminal: true,
+                            content: None,
+                            children: HashMap::new(),
+                        },
+                    ),
+                ]),
+            }),
         };
         assert_eq!(t.pp(), "\na\n b\nc\nd")
     }
 
     #[test]
-    fn add_empty_string(){
+    fn add_empty_string() {
         let mut t = Trie::new(None);
         t.add("", Some(1));
         assert_eq!(t.root.get_mut().content, Some(1));
     }
 
     #[test]
-    fn add_single_char_string(){
+    fn add_single_char_string() {
         let mut t = Trie::new(None);
         t.add("a", Some(1));
         t.add("ab", Some(1));
@@ -207,6 +250,3 @@ mod tests {
         assert_eq!(t.pp(), "\na\n b\nc\nd")
     }
 }
-
-
-
