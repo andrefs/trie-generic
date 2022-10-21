@@ -78,10 +78,18 @@ pub mod trie {
         cur_pref: String,
         opts: LongestPrefOpts,
     ) -> LongestPrefResult {
+        eprintln!("XXXXX '{cur_pref}' '{str_left}'");
+
+        let mut new_last_terminal: Option<Vec<char>> = last_terminal;
+        if cur_node.is_terminal {
+            new_last_terminal = Some(cur_pref.chars().collect());
+        }
+
         // end of searched string (matches fully)
         if str_left.is_empty() {
+            eprintln!("XXXXX 1");
             if opts.must_be_terminal && !cur_node.is_terminal {
-                return match last_terminal {
+                return match new_last_terminal {
                     None => None,
                     Some(t) => Some((
                         t,
@@ -92,6 +100,7 @@ pub mod trie {
                     )),
                 };
             }
+            eprintln!("XXXXX 3");
             return Some((
                 cur_pref.chars().collect(),
                 LongestPrefFlags {
@@ -100,6 +109,7 @@ pub mod trie {
                 },
             ));
         }
+        eprintln!("XXXXX 3");
 
         let mut chars = str_left.chars();
         let ch = chars.next().unwrap();
@@ -110,7 +120,7 @@ pub mod trie {
                 return None;
             }
             if opts.must_be_terminal && !cur_node.is_terminal {
-                return match last_terminal {
+                return match new_last_terminal {
                     None => None,
                     Some(t) => Some((
                         t,
@@ -133,7 +143,7 @@ pub mod trie {
             longest_prefix_fn(
                 &cur_node.children[&ch],
                 new_str,
-                last_terminal,
+                new_last_terminal,
                 format!("{}{}", cur_pref, ch),
                 opts,
             )
@@ -141,7 +151,7 @@ pub mod trie {
             longest_prefix_fn(
                 &cur_node.children[&ch],
                 new_str,
-                last_terminal,
+                new_last_terminal,
                 format!("{}{}", cur_pref, ch),
                 opts,
             )
@@ -283,8 +293,10 @@ mod tests {
         t.add("this is words", Some(1));
         t.add("this is more", Some(1));
         t.add("this is more words", Some(1));
-        let pref = t.longest_prefix("this is more wo", true);
-        assert!(pref.is_none());
+        eprintln!("{}", t.pp());
+        let pref = t.longest_prefix("this is more wo", true).unwrap().0;
+        let expected: Vec<char> = "this is more".chars().collect();
+        assert_eq!(pref, expected);
     }
     #[test]
     fn find() {
@@ -296,4 +308,14 @@ mod tests {
         let expected: Vec<char> = "this is more".chars().collect();
         assert_eq!(pref, expected);
     }
+    //#[test]
+    //fn find_terminal() {
+    //    let mut t = Trie::new(None);
+    //    t.add("this is words", Some(1));
+    //    t.add("this is more", Some(1));
+    //    t.add("this is even more", Some(1));
+    //    let pref = t.find("this is more wo", true).unwrap().0;
+    //    let expected: Vec<char> = "this is more".chars().collect();
+    //    assert_eq!(pref, expected);
+    //}
 }
