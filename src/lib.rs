@@ -79,7 +79,6 @@ pub mod trie {
         opts: LongestPrefOpts,
     ) -> LongestPrefResult {
         // end of searched string (matches fully)
-        eprintln!("XXXXX '{cur_pref}' '{str_left}'");
         if str_left.is_empty() {
             if opts.must_be_terminal && !cur_node.is_terminal {
                 return match last_terminal {
@@ -94,7 +93,7 @@ pub mod trie {
                 };
             }
             return Some((
-                str_left.chars().collect(),
+                cur_pref.chars().collect(),
                 LongestPrefFlags {
                     is_terminal: cur_node.is_terminal,
                     full_match: true,
