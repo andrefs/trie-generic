@@ -299,6 +299,16 @@ mod tests {
         assert_eq!(pref, expected);
     }
     #[test]
+    fn longest_prefix_fail() {
+        let mut t = Trie::new(None);
+        t.add("this is words", Some(1));
+        t.add("this is more", Some(1));
+        t.add("this is more words", Some(1));
+        eprintln!("{}", t.pp());
+        let pref = t.longest_prefix("this is", true);
+        assert!(pref.is_none());
+    }
+    #[test]
     fn find() {
         let mut t = Trie::new(None);
         t.add("this is words", Some(1));
@@ -308,14 +318,23 @@ mod tests {
         let expected: Vec<char> = "this is more".chars().collect();
         assert_eq!(pref, expected);
     }
-    //#[test]
-    //fn find_terminal() {
-    //    let mut t = Trie::new(None);
-    //    t.add("this is words", Some(1));
-    //    t.add("this is more", Some(1));
-    //    t.add("this is even more", Some(1));
-    //    let pref = t.find("this is more wo", true).unwrap().0;
-    //    let expected: Vec<char> = "this is more".chars().collect();
-    //    assert_eq!(pref, expected);
-    //}
+    #[test]
+    fn find_terminal() {
+        let mut t = Trie::new(None);
+        t.add("this is words", Some(1));
+        t.add("this is more", Some(1));
+        t.add("this is even more", Some(1));
+        let pref = t.find("this is more", true).unwrap().0;
+        let expected: Vec<char> = "this is more".chars().collect();
+        assert_eq!(pref, expected);
+    }
+    #[test]
+    fn find_terminal_fail() {
+        let mut t = Trie::new(None);
+        t.add("this is words", Some(1));
+        t.add("this is more", Some(1));
+        t.add("this is even more", Some(1));
+        let pref = t.find("this is more wo", true);
+        assert!(pref.is_none())
+    }
 }
