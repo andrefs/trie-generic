@@ -50,6 +50,14 @@ pub mod trie {
             pp_fn(self.root.get_mut(), 0)
         }
 
+        pub fn find<'a>(&'a mut self, s: &'a str, must_be_terminal: bool) -> LongestPrefResult {
+            let lpo = LongestPrefOpts {
+                must_be_terminal,
+                must_match_fully: true,
+            };
+            longest_prefix_fn(self.root.get_mut(), s, None, "".to_owned(), lpo)
+        }
+
         pub fn longest_prefix<'a>(
             &'a mut self,
             s: &'a str,
@@ -70,7 +78,8 @@ pub mod trie {
         cur_pref: String,
         opts: LongestPrefOpts,
     ) -> LongestPrefResult {
-        // end of searched string
+        // end of searched string (matches fully)
+        eprintln!("XXXXX '{cur_pref}' '{str_left}'");
         if str_left.is_empty() {
             if opts.must_be_terminal && !cur_node.is_terminal {
                 return match last_terminal {
@@ -260,13 +269,32 @@ mod tests {
     }
 
     #[test]
-    fn find_longest_prefix() {
+    fn longest_prefix() {
+        let mut t = Trie::new(None);
+        t.add("this is words", Some(1));
+        t.add("this is more", Some(1));
+        t.add("this is more words", Some(1));
+        let pref = t.longest_prefix("this is more wo", false).unwrap().0;
+        let expected: Vec<char> = "this is more wo".chars().collect();
+        assert_eq!(pref, expected);
+    }
+    #[test]
+    fn longest_prefix_terminal() {
+        let mut t = Trie::new(None);
+        t.add("this is words", Some(1));
+        t.add("this is more", Some(1));
+        t.add("this is more words", Some(1));
+        let pref = t.longest_prefix("this is more wo", true);
+        assert!(pref.is_none());
+    }
+    #[test]
+    fn find() {
         let mut t = Trie::new(None);
         t.add("this is words", Some(1));
         t.add("this is more", Some(1));
         t.add("this is even more", Some(1));
-        let pref = t.longest_prefix("this is mine", false).unwrap().0;
-        let expected: Vec<char> = "this is m".chars().collect();
+        let pref = t.find("this is more", false).unwrap().0;
+        let expected: Vec<char> = "this is more".chars().collect();
         assert_eq!(pref, expected);
     }
 }
