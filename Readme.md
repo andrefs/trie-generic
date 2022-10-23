@@ -1,5 +1,7 @@
 # trie-generic
 
+[![Rust](https://github.com/andrefs/trie-generic/actions/workflows/rust.yml/badge.svg)](https://github.com/andrefs/trie-generic/actions/workflows/rust.yml)
+
 Generic implementation of a trie.
 
 ## Install
