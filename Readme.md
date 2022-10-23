@@ -4,9 +4,11 @@ Generic implementation of a trie.
 
 ## Install
 
+Add `trie-generic` to the dependencies on your Cargo.toml file:
+
 ```rust
 [dependencies]
-trie-generic = "0.1.0"  # NOTE: Replace to latest minor version.
+trie-generic = "0.1.2"
 ```
 
 ## API
