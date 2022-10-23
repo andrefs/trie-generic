@@ -1,4 +1,4 @@
-use trie::Trie;
+use trie_generic::Trie;
 
 fn main() {
     let mut t = Trie::<i32>::new(None);
