@@ -6,7 +6,7 @@ Generic implementation of a trie.
 
 ```rust
 [dependencies]
-trie-generic = "0.0.1"  # NOTE: Replace to latest minor version.
+trie-generic = "0.1.0"  # NOTE: Replace to latest minor version.
 ```
 
 ## API
@@ -15,6 +15,7 @@ trie-generic = "0.0.1"  # NOTE: Replace to latest minor version.
 
 ## To do
 
+- Improve docs
 - Replace string/Vec<char> with Iterator
 
 ## Bugs and stuff
