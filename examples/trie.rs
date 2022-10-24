@@ -4,8 +4,8 @@ fn main() {
     let mut t = Trie::<i32>::new(None);
 
     t.add("https://google.com", Some(1));
-    t.add("http://wikipedia.org", Some(1));
-    t.add("https://imdb.com", Some(1));
+    t.add("http://wikipedia.org", Some(2));
+    t.add("https://imdb.com", Some(3));
 
-    println!("{}", t.pp());
+    println!("{}", t.pp(true));
 }
