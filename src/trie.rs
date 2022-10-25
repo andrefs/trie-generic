@@ -94,27 +94,45 @@ fn remove_fn<'a, T: Display + Debug + Copy>(
 ) -> (bool, Option<T>, bool) {
     let first_char = str_left.chars().next().unwrap();
     let rest = &str_left[first_char.len_utf8()..];
+    println!("XXXXXXXXXXX 1 {} {} {:?}", first_char, rest, cur_node);
 
     if cur_node.children.contains_key(&first_char) {
+        println!("XXXXXXXXXXX 2");
         let mut node = cur_node.children.get_mut(&first_char).unwrap();
+
         if rest.is_empty() {
+            println!("XXXXXXXXXXX 3");
+            // oo nothing
             if !node.is_terminal && !remove_subtree {
+                println!("XXXXXXXXXXX 4 {node}");
                 return (false, None, false);
             }
+            println!("XXXXXXXXXXX 5 {first_char} {:?}", node);
             node.is_terminal = false;
             if node.children.is_empty() || remove_subtree {
+                println!("XXXXXXXXXXX 6");
+                let content = node.content;
+                drop(node);
+                cur_node.children.remove(&first_char);
                 let removing_subtree = true;
-                return (true, node.content, removing_subtree);
+                return (true, content, removing_subtree);
             }
+            println!("XXXXXXXXXXX 7");
         } else {
+            println!("XXXXXXXXXXX 7.5");
             let (removed, content, removing_subtree) = remove_fn(node, rest, remove_subtree);
+            println!("XXXXXXXXXXX 8 {removed} {removing_subtree}");
             if removing_subtree && cur_node.is_terminal {
+                println!("XXXXXXXXXXX 9");
                 cur_node.children.remove(&first_char);
                 return (true, content, false);
             }
+            println!("XXXXXXXXXXX 10");
             return (removed, content, removing_subtree);
         }
+        println!("XXXXXXXXXXX 11");
     }
+    println!("XXXXXXXXXXX 12");
     return (false, None, false);
 }
 
@@ -396,5 +414,45 @@ mod tests {
         t.add("this is even more", Some(1));
         let pref = t.find("this is more wo", true);
         assert!(pref.is_none())
+    }
+    #[test]
+    fn remove() {
+        let mut t = Trie::new(None);
+        t.add("ab", Some(1));
+        t.add("abc", Some(2));
+        t.remove("abc", false);
+        println!("{}", t.pp(true));
+        let expected = "ab";
+        assert_eq!(t.pp(false), expected);
+    }
+    #[test]
+    fn remove_non_terminal() {
+        let mut t = Trie::new(None);
+        t.add("a", Some(1));
+        t.add("abc", Some(2));
+        t.remove("abc", false);
+        println!("{}", t.pp(true));
+        let expected = "a";
+        assert_eq!(t.pp(false), expected);
+    }
+    #[test]
+    fn remove_subtree() {
+        let mut t = Trie::new(None);
+        t.add("a", Some(1));
+        t.add("abc", Some(2));
+        t.remove("ab", true);
+        println!("{}", t.pp(true));
+        let expected = "a";
+        assert_eq!(t.pp(false), expected);
+    }
+    #[test]
+    fn remove_non_existing() {
+        let mut t = Trie::new(None);
+        t.add("a", Some(1));
+        t.add("abc", Some(2));
+        let expected = t.pp(false);
+        t.remove("xyz", true);
+        println!("{}", t.pp(true));
+        assert_eq!(t.pp(false), expected);
     }
 }
