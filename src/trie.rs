@@ -47,7 +47,7 @@ struct LongestPrefOpts {
 
 type LongestPrefResult = Option<(Vec<char>, LongestPrefFlags)>;
 
-impl<T: Display + Debug> Trie<T> {
+impl<T: Display + Debug + Copy> Trie<T> {
     pub fn new(content: Option<T>) -> Trie<T> {
         Trie {
             root: RefCell::new(TNode::new(content)),
@@ -81,6 +81,41 @@ impl<T: Display + Debug> Trie<T> {
         };
         longest_prefix_fn(self.root.get_mut(), s, None, "".to_owned(), lpo)
     }
+
+    pub fn remove(&mut self, s: &str, remove_subtree: bool) -> (bool, Option<T>) {
+        let (removed, content, _) = remove_fn(self.root.get_mut(), s, remove_subtree);
+        return (removed, content);
+    }
+}
+fn remove_fn<'a, T: Display + Debug + Copy>(
+    cur_node: &mut TNode<T>,
+    str_left: &'a str,
+    remove_subtree: bool,
+) -> (bool, Option<T>, bool) {
+    let first_char = str_left.chars().next().unwrap();
+    let rest = &str_left[first_char.len_utf8()..];
+
+    if cur_node.children.contains_key(&first_char) {
+        let mut node = cur_node.children.get_mut(&first_char).unwrap();
+        if rest.is_empty() {
+            if !node.is_terminal && !remove_subtree {
+                return (false, None, false);
+            }
+            node.is_terminal = false;
+            if node.children.is_empty() || remove_subtree {
+                let removing_subtree = true;
+                return (true, node.content, removing_subtree);
+            }
+        } else {
+            let (removed, content, removing_subtree) = remove_fn(node, rest, remove_subtree);
+            if removing_subtree && cur_node.is_terminal {
+                cur_node.children.remove(&first_char);
+                return (true, content, false);
+            }
+            return (removed, content, removing_subtree);
+        }
+    }
+    return (false, None, false);
 }
 
 fn longest_prefix_fn<'a, T: Display + Debug>(

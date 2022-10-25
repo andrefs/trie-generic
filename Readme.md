@@ -19,6 +19,9 @@ trie-generic = "0.1.2"
 
 ## To do
 
+- `t.set(key, value)`
+- `t.all() -> (key, value)`
+- `t.subtree(prefix) -> Trie`
 - Improve docs
 - Replace string/Vec<char> with Iterator
 
