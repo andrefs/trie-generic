@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::fmt::{self, Debug};
 use std::string::String;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TNode<T: Display + Debug> {
     pub is_terminal: bool,
     pub content: Option<T>,
@@ -30,7 +30,7 @@ impl<T: Display + Debug> TNode<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Trie<T: Display + Debug> {
     pub root: RefCell<TNode<T>>,
 }

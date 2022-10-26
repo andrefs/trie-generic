@@ -1,5 +1,8 @@
 # trie-generic
 
+THIS IS CURRENTLY A WORK IN PROGRESS!
+API MAY CHANGE WITHOUT WARNING.
+
 [![Rust](https://github.com/andrefs/trie-generic/actions/workflows/rust.yml/badge.svg)](https://github.com/andrefs/trie-generic/actions/workflows/rust.yml)
 
 Generic implementation of a trie.
