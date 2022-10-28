@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::fmt::{self, Debug};
 use std::string::String;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TNode<T: Display + Debug> {
     pub is_terminal: bool,
     pub content: Option<T>,
@@ -30,7 +30,7 @@ impl<T: Display + Debug> TNode<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Trie<T: Display + Debug> {
     pub root: RefCell<TNode<T>>,
 }
@@ -47,7 +47,7 @@ struct LongestPrefOpts {
 
 type LongestPrefResult = Option<(Vec<char>, LongestPrefFlags)>;
 
-impl<T: Display + Debug + Copy> Trie<T> {
+impl<T: Display + Debug> Trie<T> {
     pub fn new(content: Option<T>) -> Trie<T> {
         Trie {
             root: RefCell::new(TNode::new(content)),
@@ -84,14 +84,14 @@ impl<T: Display + Debug + Copy> Trie<T> {
 
     pub fn remove(&mut self, s: &str, remove_subtree: bool) -> (bool, Option<T>) {
         let (removed, content, _) = remove_fn(self.root.get_mut(), s, remove_subtree);
-        return (removed, content);
+        return (removed, *content);
     }
 }
-fn remove_fn<'a, T: Display + Debug + Copy>(
+fn remove_fn<'a, T: Display + Debug>(
     cur_node: &mut TNode<T>,
     str_left: &'a str,
     remove_subtree: bool,
-) -> (bool, Option<T>, bool) {
+) -> (bool, &'a Option<T>, bool) {
     let first_char = str_left.chars().next().unwrap();
     let rest = &str_left[first_char.len_utf8()..];
 
@@ -101,15 +101,14 @@ fn remove_fn<'a, T: Display + Debug + Copy>(
         if rest.is_empty() {
             // oo nothing
             if !node.is_terminal && !remove_subtree {
-                return (false, None, false);
+                return (false, &None, false);
             }
             node.is_terminal = false;
             if node.children.is_empty() || remove_subtree {
                 let content = node.content;
-                drop(node);
                 cur_node.children.remove(&first_char);
                 let removing_subtree = true;
-                return (true, content, removing_subtree);
+                return (true, &content, removing_subtree);
             }
         } else {
             let (removed, content, removing_subtree) = remove_fn(node, rest, remove_subtree);
@@ -120,7 +119,7 @@ fn remove_fn<'a, T: Display + Debug + Copy>(
             return (removed, content, removing_subtree);
         }
     }
-    return (false, None, false);
+    return (false, &None, false);
 }
 
 fn longest_prefix_fn<'a, T: Display + Debug>(
