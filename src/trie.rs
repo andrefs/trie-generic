@@ -285,56 +285,51 @@ mod tests {
 
     use super::*;
 
-    //    #[test]
-    //    fn pretty_print() {
-    //        let mut t: Trie<u8> = Trie {
-    //            root: RefCell::new(TNode {
-    //                is_terminal: false,
-    //                content: None,
-    //                children: BTreeMap::from([
-    //                    (
-    //                        'a',
-    //                        Box::from(TNode {
-    //                            is_terminal: true,
-    //                            content: None,
-    //                            children: BTreeMap::from([(
-    //                                'b',
-    //                                Box::from(TNode {
-    //                                    is_terminal: false,
-    //                                    content: None,
-    //                                    children: BTreeMap::from([(
-    //                                        'c',
-    //                                        Box::from(TNode {
-    //                                            is_terminal: true,
-    //                                            content: None,
-    //                                            children: BTreeMap::new(),
-    //                                        }),
-    //                                    )]),
-    //                                }),
-    //                            )]),
-    //                        }),
-    //                    ),
-    //                    (
-    //                        'd',
-    //                        Box::from(TNode {
-    //                            is_terminal: true,
-    //                            content: None,
-    //                            children: BTreeMap::new(),
-    //                        }),
-    //                    ),
-    //                    (
-    //                        'e',
-    //                        Box::from(TNode {
-    //                            is_terminal: true,
-    //                            content: None,
-    //                            children: BTreeMap::new(),
-    //                        }),
-    //                    ),
-    //                ]),
-    //            }),
-    //        };
-    //        assert_eq!(t.pp(false), "\na\n bc\nd\ne")
-    //    }
+    #[test]
+    fn pretty_print() {
+        let mut t: TNode<u8> = TNode::Node(Node {
+            is_terminal: false,
+            content: &None,
+            children: BTreeMap::from([
+                (
+                    'a',
+                    TNode::Node(Node {
+                        is_terminal: true,
+                        content: &None,
+                        children: BTreeMap::from([(
+                            'b',
+                            TNode::Node(Node {
+                                is_terminal: false,
+                                content: &None,
+                                children: BTreeMap::from([(
+                                    'c',
+                                    TNode::Leaf(Leaf {
+                                        is_terminal: true,
+                                        content: &None,
+                                    }),
+                                )]),
+                            }),
+                        )]),
+                    }),
+                ),
+                (
+                    'd',
+                    TNode::Leaf(Leaf {
+                        is_terminal: true,
+                        content: &None,
+                    }),
+                ),
+                (
+                    'e',
+                    TNode::Leaf(Leaf {
+                        is_terminal: true,
+                        content: &None,
+                    }),
+                ),
+            ]),
+        });
+        assert_eq!(t.pp(false), "a\n bc\nd\ne\n")
+    }
 
     #[test]
     fn add_to_empty_trie() {
