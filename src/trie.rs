@@ -31,6 +31,11 @@ struct LongestPrefOpts {
     must_match_fully: bool,
 }
 
+struct FindResults<'a, T: Display + Debug> {
+    node: Option<&'a TNode<'a, T>>,
+    prefix: String,
+}
+
 type LongestPrefResult = Option<(Vec<char>, LongestPrefFlags)>;
 
 #[derive(Debug, Clone)]
@@ -178,63 +183,92 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
             must_be_terminal,
             must_match_fully: true,
         };
-        self.longest_prefix_fn(s, None, "".to_owned(), lpo)
+        let last_term = FindResults {
+            node: None,
+            prefix: "".to_owned(),
+        };
+        self.longest_prefix_fn(s, "", last_term, lpo).node
     }
 
-    pub fn longest_prefix(&'a mut self, s: &'a str, must_be_terminal: bool) -> Option<&TNode<T>> {
+    pub fn longest_prefix(&'a mut self, s: &'a str, must_be_terminal: bool) -> String {
         let lpo = LongestPrefOpts {
             must_be_terminal,
             must_match_fully: false,
         };
-        self.longest_prefix_fn(s, None, "".to_owned(), lpo)
+        let last_term = FindResults {
+            node: None,
+            prefix: "".to_owned(),
+        };
+        self.longest_prefix_fn(s, "", last_term, lpo).prefix
     }
 
     fn longest_prefix_fn(
         &self,
         str_left: &str,
-        last_terminal: Option<&'a TNode<T>>,
-        cur_pref: String,
+        str_acc: &str,
+        last_terminal: FindResults<'a, T>,
         opts: LongestPrefOpts,
-    ) -> Option<&TNode<T>> {
+    ) -> FindResults<T> {
         match self {
-            TNode::Empty => None,
+            TNode::Empty => FindResults {
+                node: None,
+                prefix: "".to_owned(),
+            },
             TNode::Leaf(leaf) => {
                 let new_last_terminal = if leaf.is_terminal {
-                    Some(self)
+                    FindResults {
+                        node: Some(self),
+                        prefix: str_acc.to_owned(),
+                    }
                 } else {
                     last_terminal
                 };
                 if str_left.is_empty() {
-                    return if opts.must_be_terminal && !leaf.is_terminal {
+                    return if opts.must_be_terminal {
                         new_last_terminal
                     } else {
-                        Some(self)
+                        FindResults {
+                            node: Some(self),
+                            prefix: str_acc.to_owned(),
+                        }
                     };
                 } else {
-                    None
+                    FindResults {
+                        node: None,
+                        prefix: "".to_owned(),
+                    }
                 }
             }
             TNode::Node(node) => {
                 let new_last_terminal = if node.is_terminal {
-                    Some(self)
+                    FindResults {
+                        node: Some(self),
+                        prefix: str_acc.to_owned(),
+                    }
                 } else {
                     last_terminal
                 };
                 if str_left.is_empty() {
-                    return if opts.must_be_terminal && !node.is_terminal {
-                        last_terminal
+                    return if opts.must_be_terminal {
+                        new_last_terminal
                     } else {
-                        Some(self)
+                        FindResults {
+                            node: Some(self),
+                            prefix: str_acc.to_owned(),
+                        }
                     };
                 };
 
                 let first_char = str_left.chars().next().unwrap();
                 let rest = &str_left[first_char.len_utf8()..];
                 if !node.children.contains_key(&first_char) {
-                    return None;
+                    return FindResults {
+                        node: None,
+                        prefix: "".to_owned(),
+                    };
                 }
                 let next_node = node.children.get(&first_char).unwrap();
-                return next_node.longest_prefix_fn(rest, new_last_terminal, cur_pref, opts);
+                return next_node.longest_prefix_fn(rest, str_acc, new_last_terminal, opts);
             }
         }
     }
@@ -262,7 +296,7 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
 
                 let child_count = node.children.len();
 
-                for (i, (k, v)) in iter.enumerate() {
+                for (k, v) in iter {
                     if node.is_terminal || child_count > 1 {
                         if indent != 0 {
                             res.push('\n');
@@ -287,7 +321,7 @@ mod tests {
 
     #[test]
     fn pretty_print() {
-        let mut t: TNode<u8> = TNode::Node(Node {
+        let t: TNode<u8> = TNode::Node(Node {
             is_terminal: false,
             content: &None,
             children: BTreeMap::from([
@@ -375,16 +409,17 @@ mod tests {
         assert_eq!(t.pp(true), "a\n bc  (2)\nd  (3)\ne  (4)\n");
     }
 
-    //    #[test]
-    //    fn longest_prefix() {
-    //        let mut t = Trie::new(None);
-    //        t.add("this is words", Some(1));
-    //        t.add("this is more", Some(1));
-    //        t.add("this is more words", Some(1));
-    //        let pref = t.longest_prefix("this is more wo", false).unwrap().0;
-    //        let expected: Vec<char> = "this is more wo".chars().collect();
-    //        assert_eq!(pref, expected);
-    //    }
+    #[test]
+    fn longest_prefix() {
+        let mut t = TNode::Empty;
+        t.add("this is words", &Some(1)).unwrap();
+        t.add("this is more", &Some(1)).unwrap();
+        t.add("this is more words", &Some(1)).unwrap();
+        let res = t.longest_prefix("this is more wo", false);
+        let expected: Vec<char> = "this is more wo".chars().collect();
+        assert_eq!(res.chars().collect::<Vec<_>>(), expected);
+    }
+
     //    #[test]
     //    fn longest_prefix_terminal() {
     //        let mut t = Trie::new(None);
