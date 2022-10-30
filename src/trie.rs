@@ -74,11 +74,7 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                 content: cont,
                 is_terminal: false,
             },
-            TNode::Node {
-                content: _,
-                children: _,
-                is_terminal,
-            } => TNode::Leaf {
+            TNode::Node(node) => TNode::Leaf {
                 content: cont,
                 is_terminal: is_terminal.to_owned(),
             },
@@ -127,9 +123,31 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     }
 
     pub fn add(&mut self, s: &str, cont: &'a Option<T>) -> Result<&TNode<T>, KeyExists> {
-        if s.is_empty() && self.is_terminal() {
-            return Err(KeyExists);
-        } else {
+        if s.is_empty() {
+            if self.is_terminal() {
+                return Err(KeyExists);
+            } else {
+                match self {
+                    TNode::Node {
+                        content,
+                        is_terminal,
+                        ..
+                    } => {}
+                    TNode::Leaf { .. } => {
+                        *self = TNode::Leaf {
+                            content: cont,
+                            is_terminal: true,
+                        }
+                    }
+                    TNode::Empty => {
+                        *self = TNode::Leaf {
+                            content: cont,
+                            is_terminal: true,
+                        }
+                    }
+                }
+            }
+            return Ok(self);
         }
         let first_char = s.chars().next().unwrap();
         let rest = &s[first_char.len_utf8()..];
