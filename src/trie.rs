@@ -427,16 +427,17 @@ mod tests {
         assert_eq!(res.chars().collect::<Vec<_>>(), expected);
     }
 
-    //    #[test]
-    //    fn longest_prefix_terminal() {
-    //        let mut t = Trie::new(None);
-    //        t.add("this is words", Some(1));
-    //        t.add("this is more", Some(1));
-    //        t.add("this is more words", Some(1));
-    //        let pref = t.longest_prefix("this is more wo", true).unwrap().0;
-    //        let expected: Vec<char> = "this is more".chars().collect();
-    //        assert_eq!(pref, expected);
-    //    }
+    #[test]
+    fn longest_prefix_terminal() {
+        let mut t = TNode::Empty;
+        t.add("this is words", &Some(1)).unwrap();
+        t.add("this is more", &Some(1)).unwrap();
+        t.add("this is more words", &Some(1)).unwrap();
+        let res = t.longest_prefix("this is more wo", true);
+        let expected: Vec<char> = "this is more".chars().collect();
+        assert_eq!(res.chars().collect::<Vec<_>>(), expected);
+    }
+
     //    #[test]
     //    fn longest_prefix_fail() {
     //        let mut t = Trie::new(None);
