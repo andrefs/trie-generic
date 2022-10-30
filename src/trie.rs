@@ -170,17 +170,13 @@ impl<'a, T> TNode<'a, T> {
         self.longest_prefix_fn(s, None, "".to_owned(), lpo)
     }
 
-    //  pub fn longest_prefix<'a>(
-    //      &'a mut self,
-    //      s: &'a str,
-    //      must_be_terminal: bool,
-    //  ) -> Option<TNode<T>> {
-    //      let lpo = LongestPrefOpts {
-    //          must_be_terminal,
-    //          must_match_fully: false,
-    //      };
-    //      self.longest_prefix_fn(s, None, "".to_owned(), lpo)
-    //  }
+    pub fn longest_prefix(&'a mut self, s: &'a str, must_be_terminal: bool) -> Option<&TNode<T>> {
+        let lpo = LongestPrefOpts {
+            must_be_terminal,
+            must_match_fully: false,
+        };
+        self.longest_prefix_fn(s, None, "".to_owned(), lpo)
+    }
 
     fn longest_prefix_fn(
         &self,
