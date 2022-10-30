@@ -7,5 +7,6 @@ fn main() {
     t.add("http://wikipedia.org", &Some(2)).unwrap();
     t.add("https://imdb.com", &Some(3)).unwrap();
 
-    //println!("{}", t.pp(true));
+    println!("{:?}", t);
+    println!("{}", t.pp(true));
 }

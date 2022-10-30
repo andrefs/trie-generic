@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt::{self, Debug, Display};
 
-pub enum TNode<'a, T> {
+#[derive(Debug)]
+pub enum TNode<'a, T: Display + Debug> {
     Empty,
     Leaf {
         content: &'a Option<T>,
@@ -41,20 +42,13 @@ impl<'a, T: Display + Debug> fmt::Display for TNode<'a, T> {
             TNode::Empty => {
                 write!(f, "(empty)")
             }
-            TNode::Leaf {
-                content,
-                is_terminal,
-            } => {
+            TNode::Leaf { content, .. } => {
                 if let Some(c) = content {
                     return write!(f, "({})", c);
                 }
                 Ok(())
             }
-            TNode::Node {
-                content,
-                children,
-                is_terminal,
-            } => {
+            TNode::Node { content, .. } => {
                 if let Some(c) = content {
                     return write!(f, "({})", c);
                 }
@@ -73,7 +67,7 @@ impl fmt::Display for KeyNotFound {
     }
 }
 
-impl<'a, T> TNode<'a, T> {
+impl<'a, T: Display + Debug> TNode<'a, T> {
     fn to_leaf(&mut self, cont: &'a Option<T>) {
         *self = match self {
             TNode::Empty => TNode::Leaf {
@@ -96,11 +90,6 @@ impl<'a, T> TNode<'a, T> {
     }
     fn to_node(&mut self, c: char, cont: &'a Option<T>, is_term: bool) {
         *self = match self {
-            TNode::Empty => TNode::Node {
-                content: cont,
-                children: BTreeMap::new(),
-                is_terminal: is_term,
-            },
             TNode::Leaf {
                 content,
                 is_terminal,
@@ -138,7 +127,7 @@ impl<'a, T> TNode<'a, T> {
         }
     }
 
-    pub fn add(&mut self, s: &str, content: &'a Option<T>) -> Result<&TNode<T>, KeyExists> {
+    pub fn add(&mut self, s: &str, cont: &'a Option<T>) -> Result<&TNode<T>, KeyExists> {
         if s.is_empty() && self.is_terminal() {
             return Err(KeyExists);
         }
@@ -147,12 +136,15 @@ impl<'a, T> TNode<'a, T> {
 
         match self {
             TNode::Empty => {
-                self.to_leaf(content);
-                return Ok(self);
+                self.to_leaf(&None);
+                self.add(s, cont)
             }
             TNode::Leaf { .. } => {
-                self.to_node(first_char, content, true);
-                return Ok(self);
+                self.to_node(first_char, cont, true);
+                if rest.is_empty() {
+                    return Ok(self);
+                }
+                self.add(rest, cont)
             }
             TNode::Node {
                 content, children, ..
@@ -240,62 +232,54 @@ impl<'a, T> TNode<'a, T> {
         }
     }
 
-    //  fn pp(&self, print_content: bool) -> String {
-    //      return self.pp_fn(0, print_content);
-    //  }
+    pub fn pp(&self, print_content: bool) -> String {
+        return self.pp_fn(0, print_content);
+    }
 
-    //  fn pp_fn(&self, indent: u8, print_content: bool) -> String {
-    //      let mut res = String::from("");
-    //      match &self {
-    //          TNode::Leaf {
-    //              content,
-    //              is_terminal,
-    //          } => {
-    //              return "".to_owned();
-    //          }
-    //          TNode::Node {
-    //              content,
-    //              children,
-    //              is_terminal,
-    //          } => {
-    //              let iter = children.iter();
+    fn pp_fn(&self, indent: u8, print_content: bool) -> String {
+        let mut res = String::from("");
+        match &self {
+            TNode::Empty => "(empty)".to_owned(),
+            TNode::Leaf { .. } => {
+                return "".to_owned();
+            }
+            TNode::Node {
+                children,
+                is_terminal,
+                ..
+            } => {
+                let iter = children.iter();
 
-    //              let child_count = children.len();
+                let child_count = children.len();
 
-    //              for (k, v) in iter {
-    //                  if *is_terminal || child_count > 1 {
-    //                      res.push('\n');
-    //                      res.push_str(&" ".repeat(indent.into()));
-    //                  }
+                for (k, v) in iter {
+                    if *is_terminal || child_count > 1 {
+                        res.push('\n');
+                        res.push_str(&" ".repeat(indent.into()));
+                    }
 
-    //                  res.push_str(&k.to_string());
+                    res.push_str(&k.to_string());
 
-    //                  if print_content {
-    //                      match *v {
-    //                          TNode::Leaf {
-    //                              content,
-    //                              is_terminal,
-    //                          } => {
-    //                              res.push_str(&format!("  {}", v));
-    //                          }
-    //                          TNode::Node {
-    //                              content,
-    //                              children,
-    //                              is_terminal,
-    //                          } => {
-    //                              res.push_str(&format!("  {}", v));
-    //                          }
-    //                      }
-    //                  }
+                    if print_content {
+                        match v {
+                            TNode::Empty => res.push_str(&format!("  {}", v)),
+                            TNode::Leaf { .. } => {
+                                res.push_str(&format!("  {}", v));
+                            }
+                            TNode::Node { .. } => {
+                                res.push_str(&format!("  {}", v));
+                            }
+                        }
+                    }
 
-    //                  if print_content && *is_terminal {}
+                    if print_content && *is_terminal {}
 
-    //                  res.push_str(v.pp_fn(indent + 1, print_content).as_str());
-    //              }
-    //              res
-    //          }
-    //      }
-    //  }
+                    res.push_str(v.pp_fn(indent + 1, print_content).as_str());
+                }
+                res
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -359,8 +343,20 @@ mod tests {
     fn add_to_empty_trie() {
         let mut t = TNode::Empty;
         t.add("a", &Some(1)).unwrap();
-        //println!("{}", t.pp(true));
-        assert_eq!(*t.content(), Some(1));
+        println!("{:?}", t);
+        match t {
+            TNode::Node {
+                content,
+                children,
+                is_terminal,
+            } => {
+                assert_eq!(content, &None);
+                let subt = children.get(&'a').unwrap();
+                assert_eq!(subt.content(), &Some(1));
+                assert_eq!(is_terminal, true);
+            }
+            _ => panic!("t should be TNode::Node"),
+        }
     }
 
     //#[test]
