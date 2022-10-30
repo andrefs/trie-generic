@@ -72,15 +72,15 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
         *self = match self {
             TNode::Empty => TNode::Leaf {
                 content: cont,
-                is_terminal: true,
+                is_terminal: false,
             },
             TNode::Node {
                 content: _,
                 children: _,
-                is_terminal: _,
+                is_terminal,
             } => TNode::Leaf {
                 content: cont,
-                is_terminal: true,
+                is_terminal: is_terminal.to_owned(),
             },
             _ => panic!("Could not convert to Leaf"),
         }
@@ -88,21 +88,20 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     fn to_empty(&mut self) {
         *self = TNode::Empty;
     }
-    fn to_node(&mut self, c: char, cont: &'a Option<T>, is_term: bool) {
+    fn to_node(&mut self) {
         *self = match self {
             TNode::Leaf {
                 content,
                 is_terminal,
             } => TNode::Node {
                 content,
-                children: BTreeMap::from([(
-                    c,
-                    TNode::Leaf {
-                        content: cont,
-                        is_terminal: is_term,
-                    },
-                )]),
+                children: BTreeMap::from([]),
                 is_terminal: *is_terminal,
+            },
+            TNode::Empty => TNode::Node {
+                content: &None,
+                children: BTreeMap::from([]),
+                is_terminal: false,
             },
             _ => panic!("Could not convert to Node"),
         }
@@ -130,31 +129,23 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     pub fn add(&mut self, s: &str, cont: &'a Option<T>) -> Result<&TNode<T>, KeyExists> {
         if s.is_empty() && self.is_terminal() {
             return Err(KeyExists);
+        } else {
         }
         let first_char = s.chars().next().unwrap();
         let rest = &s[first_char.len_utf8()..];
 
         match self {
-            TNode::Empty => {
-                self.to_leaf(&None);
+            TNode::Empty | TNode::Leaf { .. } => {
+                self.to_node();
                 self.add(s, cont)
             }
-            TNode::Leaf { .. } => {
-                self.to_node(first_char, cont, true);
-                if rest.is_empty() {
-                    return Ok(self);
-                }
-                self.add(rest, cont)
-            }
-            TNode::Node {
-                content, children, ..
-            } => {
+            TNode::Node { children, .. } => {
                 if children.contains_key(&first_char) {
-                    children.get_mut(&first_char).unwrap().add(rest, content)
+                    children.get_mut(&first_char).unwrap().add(rest, cont)
                 } else {
                     let new_node = TNode::Leaf {
-                        content,
-                        is_terminal: true,
+                        content: cont,
+                        is_terminal: rest.is_empty(),
                     };
                     Ok(children.entry(first_char).or_insert_with(|| new_node))
                 }
@@ -359,27 +350,33 @@ mod tests {
         }
     }
 
-    //#[test]
-    //fn add_single_char_string() {
-    //    let mut t = TNode::Empty;
-    //    t.add("a", &Some(1));
-    //    t.add("ab", &Some(1));
-    //    t.add("c", &Some(1));
-    //    t.add("d", &Some(1));
-    //    assert_eq!(t.pp(false), "\na\n b\nc\nd")
-    //}
+    #[test]
+    fn add_single_char_string() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        t.add("ab", &Some(1)).unwrap();
+        t.add("c", &Some(1)).unwrap();
+        t.add("d", &Some(1)).unwrap();
+        assert_eq!(t.pp(false), "\na\n b\nc\nd")
+    }
 
-    //    #[test]
-    //    fn show_content() {
-    //        let mut t = Trie::new(None);
-    //        t.add("a", Some(1));
-    //        t.add("abc", Some(2));
-    //        t.add("d", Some(3));
-    //        t.add("e", Some(4));
-    //        let s = t.pp(true);
-    //        assert_eq!(s, "\na  (1)\n bc  (2)\nd  (3)\ne  (4)")
-    //    }
-    //
+    #[test]
+    fn show_content() {
+        let mut t = TNode::Empty;
+        println!("{:#?}", t);
+        t.add("a", &Some(1)).unwrap();
+        println!("{:#?}", t);
+        t.add("abc", &Some(2)).unwrap();
+        println!("{:#?}", t);
+        t.add("d", &Some(3)).unwrap();
+        println!("{:#?}", t);
+        t.add("e", &Some(4)).unwrap();
+        println!("{:#?}", t);
+        let s = t.pp(true);
+        println!("{:#?}", t);
+        assert_eq!(s, "\na  (1)\n bc  (2)\nd  (3)\ne  (4)")
+    }
+
     //    #[test]
     //    fn longest_prefix() {
     //        let mut t = Trie::new(None);
