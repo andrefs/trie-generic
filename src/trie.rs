@@ -448,35 +448,35 @@ mod tests {
         assert!(res.is_empty());
     }
 
-    //    #[test]
-    //    fn find() {
-    //        let mut t = Trie::new(None);
-    //        t.add("this is words", Some(1));
-    //        t.add("this is more", Some(1));
-    //        t.add("this is even more", Some(1));
-    //        let pref = t.find("this is more", false).unwrap().0;
-    //        let expected: Vec<char> = "this is more".chars().collect();
-    //        assert_eq!(pref, expected);
-    //    }
-    //    #[test]
-    //    fn find_terminal() {
-    //        let mut t = Trie::new(None);
-    //        t.add("this is words", Some(1));
-    //        t.add("this is more", Some(1));
-    //        t.add("this is even more", Some(1));
-    //        let pref = t.find("this is more", true).unwrap().0;
-    //        let expected: Vec<char> = "this is more".chars().collect();
-    //        assert_eq!(pref, expected);
-    //    }
-    //    #[test]
-    //    fn find_terminal_fail() {
-    //        let mut t = Trie::new(None);
-    //        t.add("this is words", Some(1));
-    //        t.add("this is more", Some(1));
-    //        t.add("this is even more", Some(1));
-    //        let pref = t.find("this is more wo", true);
-    //        assert!(pref.is_none())
-    //    }
+    #[test]
+    fn find() {
+        let mut t = TNode::Empty;
+        t.add("this is words", &Some(1)).unwrap();
+        t.add("this is more", &Some(2)).unwrap();
+        t.add("this is even more", &Some(3)).unwrap();
+        let res = t.find("this is more", false).unwrap();
+        //let expected: Vec<char> = "this is more".chars().collect();
+        assert_eq!(res.content().unwrap(), 2)
+    }
+    #[test]
+    fn find_terminal() {
+        let mut t = TNode::Empty;
+        t.add("this is words", &Some(1)).unwrap();
+        t.add("this is more", &Some(2)).unwrap();
+        t.add("this is even more", &Some(3)).unwrap();
+        let res = t.find("this is more", true).unwrap();
+        //let expected: Vec<char> = "this is more".chars().collect();
+        assert_eq!(res.content().unwrap(), 2);
+    }
+    #[test]
+    fn find_terminal_fail() {
+        let mut t = TNode::Empty;
+        t.add("this is words", &Some(1)).unwrap();
+        t.add("this is more", &Some(1)).unwrap();
+        t.add("this is even more", &Some(1)).unwrap();
+        let pref = t.find("this is more wo", true);
+        assert!(pref.is_none())
+    }
     //    #[test]
     //    fn remove() {
     //        let mut t = Trie::new(None);
