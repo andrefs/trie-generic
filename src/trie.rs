@@ -352,15 +352,15 @@ mod tests {
         }
     }
 
-    //#[test]
-    //fn add_single_char_string() {
-    //    let mut t = TNode::Empty;
-    //    t.add("a", &Some(1)).unwrap();
-    //    t.add("ab", &Some(1)).unwrap();
-    //    t.add("c", &Some(1)).unwrap();
-    //    t.add("d", &Some(1)).unwrap();
-    //    assert_eq!(t.pp(false), "\na\n b\nc\nd")
-    //}
+    #[test]
+    fn add_single_char_string() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        t.add("ab", &Some(1)).unwrap();
+        t.add("c", &Some(1)).unwrap();
+        t.add("d", &Some(1)).unwrap();
+        assert_eq!(t.pp(false), "a\n b\nc\nd\n")
+    }
 
     #[test]
     fn show_content() {
