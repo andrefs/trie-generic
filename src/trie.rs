@@ -130,6 +130,14 @@ impl<'a, T> TNode<'a, T> {
         }
     }
 
+    fn content(&self) -> &Option<T> {
+        match self {
+            TNode::Leaf { content, .. } => content,
+            TNode::Node { content, .. } => content,
+            TNode::Empty => panic!("Cannot call .content() for Empty"),
+        }
+    }
+
     pub fn add(&mut self, s: &str, content: &'a Option<T>) -> Result<&TNode<T>, KeyExists> {
         if s.is_empty() && self.is_terminal() {
             return Err(KeyExists);
@@ -347,28 +355,24 @@ mod tests {
     //        assert_eq!(t.pp(false), "\na\n bc\nd\ne")
     //    }
     //
-    // #[test]
-    // fn add_empty_string() {
-    //     let mut t = TNode::Leaf {
-    //         content: None,
-    //         is_terminal: true,
-    //     };
-    //     t.add("", Some(1));
-    //     println!("{}", t.pp(true));
-    //     //assert_eq!(t.content, Some(1));
-    //     assert_eq!(1, 2);
-    // }
-    //
+    #[test]
+    fn add_to_empty_trie() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        //println!("{}", t.pp(true));
+        assert_eq!(*t.content(), Some(1));
+    }
+
     //#[test]
     //fn add_single_char_string() {
-    //    let mut t = Trie::new(None);
-    //    t.add("a", Some(1));
-    //    t.add("ab", Some(1));
-    //    t.add("c", Some(1));
-    //    t.add("d", Some(1));
+    //    let mut t = TNode::Empty;
+    //    t.add("a", &Some(1));
+    //    t.add("ab", &Some(1));
+    //    t.add("c", &Some(1));
+    //    t.add("d", &Some(1));
     //    assert_eq!(t.pp(false), "\na\n b\nc\nd")
     //}
-    //
+
     //    #[test]
     //    fn show_content() {
     //        let mut t = Trie::new(None);

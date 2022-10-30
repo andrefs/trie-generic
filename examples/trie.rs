@@ -1,11 +1,11 @@
-use trie_generic::Trie;
+use trie_generic::TNode;
 
 fn main() {
-    let mut t = Trie::<i32>::new(None);
+    let mut t = TNode::<i32>::Empty;
 
-    t.add("https://google.com", Some(1));
-    t.add("http://wikipedia.org", Some(2));
-    t.add("https://imdb.com", Some(3));
+    t.add("https://google.com", &Some(1)).unwrap();
+    t.add("http://wikipedia.org", &Some(2)).unwrap();
+    t.add("https://imdb.com", &Some(3)).unwrap();
 
-    println!("{}", t.pp(true));
+    //println!("{}", t.pp(true));
 }
