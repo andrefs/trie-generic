@@ -162,62 +162,13 @@ impl<'a, T> TNode<'a, T> {
         }
     }
 
-    //  pub fn add(&mut self, s: &str, content: &Option<T>) -> Result<TNode<T>, KeyExists> {
-    //      let first_char = s.chars().next().unwrap();
-    //      let rest = &s[first_char.len_utf8()..];
-
-    //      match self {
-    //          TNode::Leaf {
-    //              content: cont,
-    //              is_terminal,
-    //          } => {
-    //              let mut new_node: TNode<T>;
-    //              if rest.is_empty() {
-    //                  new_node = TNode::Leaf {
-    //                      content,
-    //                      is_terminal: true,
-    //                  };
-    //              } else {
-    //                  new_node = TNode::Leaf {
-    //                      content: &None,
-    //                      is_terminal: false,
-    //                  };
-    //                  new_node.add(rest, content);
-    //              }
-    //              *self = TNode::Node {
-    //                  content: cont.as_deref_mut(),
-    //                  is_terminal: *is_terminal,
-    //                  children: BTreeMap::from([(first_char, new_node)]),
-    //              };
-    //              Ok(new_node)
-    //          }
-    //          TNode::Node {
-    //              content: cont,
-    //              children,
-    //              is_terminal,
-    //          } => {
-    //              if children.contains_key(&first_char) {
-    //                  let next_node = children.get(&first_char).unwrap();
-    //                  return next_node.add(rest, content);
-    //              } else {
-    //                  let new_node = TNode::Leaf {
-    //                      content,
-    //                      is_terminal: rest.is_empty(),
-    //                  };
-    //                  children.insert(first_char, new_node);
-    //                  return Ok(new_node);
-    //              }
-    //          }
-    //      }
-    //  }
-
-    //  pub fn find<'a>(&'a mut self, s: &'a str, must_be_terminal: bool) -> Option<TNode<T>> {
-    //      let lpo = LongestPrefOpts {
-    //          must_be_terminal,
-    //          must_match_fully: true,
-    //      };
-    //      self.longest_prefix_fn(s, None, "".to_owned(), lpo)
-    //  }
+    pub fn find(&mut self, s: &str, must_be_terminal: bool) -> Option<&TNode<T>> {
+        let lpo = LongestPrefOpts {
+            must_be_terminal,
+            must_match_fully: true,
+        };
+        self.longest_prefix_fn(s, None, "".to_owned(), lpo)
+    }
 
     //  pub fn longest_prefix<'a>(
     //      &'a mut self,
@@ -231,61 +182,59 @@ impl<'a, T> TNode<'a, T> {
     //      self.longest_prefix_fn(s, None, "".to_owned(), lpo)
     //  }
 
-    //  fn longest_prefix_fn<'a>(
-    //      &'a self,
-    //      str_left: &'a str,
-    //      last_terminal: Option<TNode<T>>,
-    //      cur_pref: String,
-    //      opts: LongestPrefOpts,
-    //  ) -> Option<TNode<T>> {
-    //      match self {
-    //          TNode::Leaf {
-    //              content,
-    //              is_terminal,
-    //          } => {
-    //              let new_last_terminal = if *is_terminal {
-    //                  Some(*self)
-    //              } else {
-    //                  last_terminal
-    //              };
-    //              if str_left.is_empty() {
-    //                  return if opts.must_be_terminal && !is_terminal {
-    //                      new_last_terminal
-    //                  } else {
-    //                      Some(*self)
-    //                  };
-    //              } else {
-    //                  None
-    //              }
-    //          }
-    //          TNode::Node {
-    //              content,
-    //              children,
-    //              is_terminal,
-    //          } => {
-    //              let new_last_terminal = if *is_terminal {
-    //                  Some(*self)
-    //              } else {
-    //                  last_terminal
-    //              };
-    //              if str_left.is_empty() {
-    //                  return if opts.must_be_terminal && !is_terminal {
-    //                      last_terminal
-    //                  } else {
-    //                      Some(*self)
-    //                  };
-    //              };
+    fn longest_prefix_fn(
+        &self,
+        str_left: &str,
+        last_terminal: Option<&'a TNode<T>>,
+        cur_pref: String,
+        opts: LongestPrefOpts,
+    ) -> Option<&TNode<T>> {
+        match self {
+            TNode::Empty => None,
+            TNode::Leaf { is_terminal, .. } => {
+                let new_last_terminal = if *is_terminal {
+                    Some(self)
+                } else {
+                    last_terminal
+                };
+                if str_left.is_empty() {
+                    return if opts.must_be_terminal && !is_terminal {
+                        new_last_terminal
+                    } else {
+                        Some(self)
+                    };
+                } else {
+                    None
+                }
+            }
+            TNode::Node {
+                children,
+                is_terminal,
+                ..
+            } => {
+                let new_last_terminal = if *is_terminal {
+                    Some(self)
+                } else {
+                    last_terminal
+                };
+                if str_left.is_empty() {
+                    return if opts.must_be_terminal && !is_terminal {
+                        last_terminal
+                    } else {
+                        Some(self)
+                    };
+                };
 
-    //              let first_char = str_left.chars().next().unwrap();
-    //              let rest = &str_left[first_char.len_utf8()..];
-    //              if !children.contains_key(&first_char) {
-    //                  return None;
-    //              }
-    //              let next_node = children.get(&first_char).unwrap();
-    //              return next_node.longest_prefix_fn(str_left, new_last_terminal, cur_pref, opts);
-    //          }
-    //      }
-    //  }
+                let first_char = str_left.chars().next().unwrap();
+                let rest = &str_left[first_char.len_utf8()..];
+                if !children.contains_key(&first_char) {
+                    return None;
+                }
+                let next_node = children.get(&first_char).unwrap();
+                return next_node.longest_prefix_fn(rest, new_last_terminal, cur_pref, opts);
+            }
+        }
+    }
 
     //  fn pp(&self, print_content: bool) -> String {
     //      return self.pp_fn(0, print_content);
