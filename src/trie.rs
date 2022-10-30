@@ -2,17 +2,23 @@ use std::collections::BTreeMap;
 use std::fmt::{self, Debug, Display};
 
 #[derive(Debug)]
+pub struct Leaf<'a, T> {
+    content: &'a Option<T>,
+    is_terminal: bool,
+}
+
+#[derive(Debug)]
+pub struct Node<'a, T: Debug + Display> {
+    content: &'a Option<T>,
+    children: BTreeMap<char, TNode<'a, T>>,
+    is_terminal: bool,
+}
+
+#[derive(Debug)]
 pub enum TNode<'a, T: Display + Debug> {
     Empty,
-    Leaf {
-        content: &'a Option<T>,
-        is_terminal: bool,
-    },
-    Node {
-        content: &'a Option<T>,
-        children: BTreeMap<char, TNode<'a, T>>,
-        is_terminal: bool,
-    },
+    Leaf(Leaf<'a, T>),
+    Node(Node<'a, T>),
 }
 
 pub struct LongestPrefFlags {
@@ -42,14 +48,14 @@ impl<'a, T: Display + Debug> fmt::Display for TNode<'a, T> {
             TNode::Empty => {
                 write!(f, "(empty)")
             }
-            TNode::Leaf { content, .. } => {
-                if let Some(c) = content {
+            TNode::Leaf(leaf) => {
+                if let Some(c) = leaf.content {
                     return write!(f, "({})", c);
                 }
                 Ok(())
             }
-            TNode::Node { content, .. } => {
-                if let Some(c) = content {
+            TNode::Node(node) => {
+                if let Some(c) = node.content {
                     return write!(f, "({})", c);
                 }
                 Ok(())
@@ -70,14 +76,14 @@ impl fmt::Display for KeyNotFound {
 impl<'a, T: Display + Debug> TNode<'a, T> {
     fn to_leaf(&mut self, cont: &'a Option<T>) {
         *self = match self {
-            TNode::Empty => TNode::Leaf {
+            TNode::Empty => TNode::Leaf(Leaf {
                 content: cont,
                 is_terminal: false,
-            },
-            TNode::Node(node) => TNode::Leaf {
-                content: cont,
-                is_terminal: is_terminal.to_owned(),
-            },
+            }),
+            TNode::Node(node) => TNode::Leaf(Leaf {
+                content: node.content,
+                is_terminal: node.is_terminal,
+            }),
             _ => panic!("Could not convert to Leaf"),
         }
     }
@@ -86,19 +92,16 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     }
     fn to_node(&mut self) {
         *self = match self {
-            TNode::Leaf {
-                content,
-                is_terminal,
-            } => TNode::Node {
-                content,
+            TNode::Leaf(leaf) => TNode::Node(Node {
+                content: leaf.content,
                 children: BTreeMap::from([]),
-                is_terminal: *is_terminal,
-            },
-            TNode::Empty => TNode::Node {
+                is_terminal: leaf.is_terminal,
+            }),
+            TNode::Empty => TNode::Node(Node {
                 content: &None,
                 children: BTreeMap::from([]),
                 is_terminal: false,
-            },
+            }),
             _ => panic!("Could not convert to Node"),
         }
     }
@@ -106,18 +109,15 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     fn is_terminal(&self) -> bool {
         match self {
             TNode::Empty => false,
-            TNode::Leaf {
-                content: _,
-                is_terminal,
-            } => *is_terminal,
-            TNode::Node { is_terminal, .. } => *is_terminal,
+            TNode::Leaf(leaf) => leaf.is_terminal,
+            TNode::Node(node) => node.is_terminal,
         }
     }
 
     fn content(&self) -> &Option<T> {
         match self {
-            TNode::Leaf { content, .. } => content,
-            TNode::Node { content, .. } => content,
+            TNode::Leaf(leaf) => leaf.content,
+            TNode::Node(node) => node.content,
             TNode::Empty => panic!("Cannot call .content() for Empty"),
         }
     }
@@ -128,26 +128,27 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                 return Err(KeyExists);
             } else {
                 match self {
-                    TNode::Node {
-                        content,
-                        is_terminal,
-                        ..
-                    } => {}
-                    TNode::Leaf { .. } => {
-                        *self = TNode::Leaf {
+                    TNode::Node(node) => {
+                        node.content = cont;
+                        node.is_terminal = true;
+                        return Ok(self);
+                    }
+                    TNode::Leaf(_) => {
+                        *self = TNode::Leaf(Leaf {
                             content: cont,
                             is_terminal: true,
-                        }
+                        });
+                        return Ok(self);
                     }
                     TNode::Empty => {
-                        *self = TNode::Leaf {
+                        *self = TNode::Leaf(Leaf {
                             content: cont,
                             is_terminal: true,
-                        }
+                        });
+                        return Ok(self);
                     }
-                }
-            }
-            return Ok(self);
+                };
+            };
         }
         let first_char = s.chars().next().unwrap();
         let rest = &s[first_char.len_utf8()..];
@@ -157,15 +158,16 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                 self.to_node();
                 self.add(s, cont)
             }
-            TNode::Node { children, .. } => {
-                if children.contains_key(&first_char) {
-                    children.get_mut(&first_char).unwrap().add(rest, cont)
+            TNode::Node(node) => {
+                if node.children.contains_key(&first_char) {
+                    node.children.get_mut(&first_char).unwrap().add(rest, cont)
                 } else {
-                    let new_node = TNode::Leaf {
-                        content: cont,
-                        is_terminal: rest.is_empty(),
-                    };
-                    Ok(children.entry(first_char).or_insert_with(|| new_node))
+                    let new_node = TNode::Empty;
+
+                    node.children
+                        .entry(first_char)
+                        .or_insert(new_node)
+                        .add(rest, cont)
                 }
             }
         }
@@ -196,14 +198,14 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     ) -> Option<&TNode<T>> {
         match self {
             TNode::Empty => None,
-            TNode::Leaf { is_terminal, .. } => {
-                let new_last_terminal = if *is_terminal {
+            TNode::Leaf(leaf) => {
+                let new_last_terminal = if leaf.is_terminal {
                     Some(self)
                 } else {
                     last_terminal
                 };
                 if str_left.is_empty() {
-                    return if opts.must_be_terminal && !is_terminal {
+                    return if opts.must_be_terminal && !leaf.is_terminal {
                         new_last_terminal
                     } else {
                         Some(self)
@@ -212,18 +214,14 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                     None
                 }
             }
-            TNode::Node {
-                children,
-                is_terminal,
-                ..
-            } => {
-                let new_last_terminal = if *is_terminal {
+            TNode::Node(node) => {
+                let new_last_terminal = if node.is_terminal {
                     Some(self)
                 } else {
                     last_terminal
                 };
                 if str_left.is_empty() {
-                    return if opts.must_be_terminal && !is_terminal {
+                    return if opts.must_be_terminal && !node.is_terminal {
                         last_terminal
                     } else {
                         Some(self)
@@ -232,10 +230,10 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
 
                 let first_char = str_left.chars().next().unwrap();
                 let rest = &str_left[first_char.len_utf8()..];
-                if !children.contains_key(&first_char) {
+                if !node.children.contains_key(&first_char) {
                     return None;
                 }
-                let next_node = children.get(&first_char).unwrap();
+                let next_node = node.children.get(&first_char).unwrap();
                 return next_node.longest_prefix_fn(rest, new_last_terminal, cur_pref, opts);
             }
         }
@@ -252,17 +250,13 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
             TNode::Leaf { .. } => {
                 return "".to_owned();
             }
-            TNode::Node {
-                children,
-                is_terminal,
-                ..
-            } => {
-                let iter = children.iter();
+            TNode::Node(node) => {
+                let iter = node.children.iter();
 
-                let child_count = children.len();
+                let child_count = node.children.len();
 
                 for (k, v) in iter {
-                    if *is_terminal || child_count > 1 {
+                    if node.is_terminal || child_count > 1 {
                         res.push('\n');
                         res.push_str(&" ".repeat(indent.into()));
                     }
@@ -281,7 +275,7 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                         }
                     }
 
-                    if print_content && *is_terminal {}
+                    if print_content && node.is_terminal {}
 
                     res.push_str(v.pp_fn(indent + 1, print_content).as_str());
                 }
@@ -354,15 +348,11 @@ mod tests {
         t.add("a", &Some(1)).unwrap();
         println!("{:?}", t);
         match t {
-            TNode::Node {
-                content,
-                children,
-                is_terminal,
-            } => {
-                assert_eq!(content, &None);
-                let subt = children.get(&'a').unwrap();
+            TNode::Node(node) => {
+                assert_eq!(node.content, &None);
+                assert_eq!(node.is_terminal, true);
+                let subt = node.children.get(&'a').unwrap();
                 assert_eq!(subt.content(), &Some(1));
-                assert_eq!(is_terminal, true);
             }
             _ => panic!("t should be TNode::Node"),
         }
