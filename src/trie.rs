@@ -156,8 +156,7 @@ impl<'a, T> TNode<'a, T> {
                         content,
                         is_terminal: true,
                     };
-                    children.insert(first_char, new_node);
-                    return Ok(children.get(&first_char).unwrap());
+                    Ok(children.entry(first_char).or_insert_with(|| new_node))
                 }
             }
         }
