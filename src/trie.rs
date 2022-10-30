@@ -268,7 +268,14 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                     };
                 }
                 let next_node = node.children.get(&first_char).unwrap();
-                return next_node.longest_prefix_fn(rest, str_acc, new_last_terminal, opts);
+                let mut new_str_acc = str_acc.to_owned();
+                new_str_acc.push(first_char);
+                return next_node.longest_prefix_fn(
+                    rest,
+                    new_str_acc.as_str(),
+                    new_last_terminal,
+                    opts,
+                );
             }
         }
     }
