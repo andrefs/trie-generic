@@ -282,10 +282,17 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                 let first_char = str_left.chars().next().unwrap();
                 let rest = &str_left[first_char.len_utf8()..];
                 if !node.children.contains_key(&first_char) {
-                    return FindResults {
-                        node: None,
-                        prefix: "".to_owned(),
-                    };
+                    if opts.must_match_fully {
+                        return FindResults {
+                            node: None,
+                            prefix: "".to_owned(),
+                        };
+                    } else {
+                        return FindResults {
+                            node: Some(self),
+                            prefix: str_acc.to_owned(),
+                        };
+                    }
                 }
                 let next_node = node.children.get(&first_char).unwrap();
                 let mut new_str_acc = str_acc.to_owned();
@@ -516,6 +523,17 @@ mod tests {
         t.add("this is more words", &Some(1)).unwrap();
         let res = t.longest_prefix("this is more wo", false);
         let expected: Vec<char> = "this is more wo".chars().collect();
+        assert_eq!(res.chars().collect::<Vec<_>>(), expected);
+    }
+
+    #[test]
+    fn longest_prefix_no_full_match() {
+        let mut t = TNode::Empty;
+        t.add("this is words", &Some(1)).unwrap();
+        t.add("this is more", &Some(1)).unwrap();
+        t.add("this is more words", &Some(1)).unwrap();
+        let res = t.longest_prefix("this is weeks", false);
+        let expected: Vec<char> = "this is w".chars().collect();
         assert_eq!(res.chars().collect::<Vec<_>>(), expected);
     }
 
