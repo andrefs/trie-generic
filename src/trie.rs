@@ -79,10 +79,10 @@ impl fmt::Display for KeyNotFound {
 }
 
 impl<'a, T: Display + Debug> TNode<'a, T> {
-    fn to_leaf(&mut self, cont: &'a Option<T>) {
+    fn to_leaf(&mut self) {
         *self = match self {
             TNode::Empty => TNode::Leaf(Leaf {
-                content: cont,
+                content: &None,
                 is_terminal: false,
             }),
             TNode::Node(node) => TNode::Leaf(Leaf {
@@ -116,6 +116,14 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
             TNode::Empty => false,
             TNode::Leaf(leaf) => leaf.is_terminal,
             TNode::Node(node) => node.is_terminal,
+        }
+    }
+
+    fn is_childless(&self) -> bool {
+        match self {
+            TNode::Empty => true,
+            TNode::Leaf(_) => true,
+            TNode::Node(node) => node.children.is_empty(),
         }
     }
 
@@ -332,45 +340,61 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
     }
 
     fn remove(&mut self, str_left: &'a str, remove_subtree: bool) -> bool {
+        self.remove_fn(str_left, remove_subtree).1
+    }
+
+    fn remove_fn(&mut self, str_left: &'a str, remove_subtree: bool) -> (bool, bool) {
         let first_char = str_left.chars().next().unwrap();
         let rest = &str_left[first_char.len_utf8()..];
 
         match self {
             TNode::Empty | TNode::Leaf(_) => {
-                return false;
+                return (false, false);
             }
             TNode::Node(node) => {
                 if !node.children.contains_key(&first_char) {
-                    return false;
+                    return (false, false);
                 }
 
                 if rest.is_empty() {
                     match node.children.get_mut(&first_char).unwrap() {
                         TNode::Leaf(_) => {
-                            node.children.remove(&first_char);
-                            return true;
+                            let removed = node.children.remove(&first_char).is_some();
+                            let bubble_up = removed && !node.is_terminal;
+                            return (bubble_up, removed);
                         }
                         TNode::Empty => {
                             panic!("Something wrong")
                         }
                         TNode::Node(sub_node) => {
                             if remove_subtree {
-                                node.children.remove(&first_char);
-                                return true;
+                                let removed = node.children.remove(&first_char).is_some();
+                                let bubble_up = removed && !node.is_terminal;
+                                return (bubble_up, removed);
                             }
                             if !sub_node.is_terminal {
-                                return false;
+                                return (false, false);
                             }
                             sub_node.is_terminal = false;
-                            return true;
+                            return (true, true);
                         }
                     }
                 } else {
-                    return node
+                    let (bubble_up, removed) = node
                         .children
                         .get_mut(&first_char)
                         .unwrap()
-                        .remove(rest, remove_subtree);
+                        .remove_fn(rest, remove_subtree);
+                    let child = node.children.get_mut(&first_char).unwrap();
+                    if removed && child.is_childless() {
+                        child.to_leaf();
+                    }
+                    if bubble_up {
+                        let removed = node.children.remove(&first_char).is_some();
+                        let bubble_up = removed && !node.is_terminal;
+                        return (bubble_up, removed);
+                    }
+                    return (false, removed);
                 }
             }
         }
@@ -545,16 +569,27 @@ mod tests {
         let pref = t.find("this is more wo", true);
         assert!(pref.is_none())
     }
-    // #[test]
-    // fn remove() {
-    //     let mut t = Trie::new(None);
-    //     t.add("ab", Some(1));
-    //     t.add("abc", Some(2));
-    //     t.remove("abc", false);
-    //     println!("{}", t.pp(true));
-    //     let expected = "ab";
-    //     assert_eq!(t.pp(false), expected);
-    // }
+
+    #[test]
+    fn remove() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        t.add("abc", &Some(2)).unwrap();
+        t.add("abcd", &Some(3)).unwrap();
+
+        assert!(!t.remove("ab", false));
+        assert!(t.contains_key("a"));
+        assert!(t.contains_key("abc"));
+        assert!(t.contains_key("abcd"));
+
+        assert!(t.remove("abc", true));
+        assert!(t.contains_key("a"));
+        assert!(!t.contains_key("abc"));
+        assert!(!t.contains_key("abcd"));
+
+        assert!(t.remove("a", false));
+        assert!(t.is_empty());
+    }
 
     //    #[test]
     //    fn remove_non_terminal() {
