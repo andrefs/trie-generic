@@ -178,6 +178,10 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
         }
     }
 
+    pub fn contains_key(&self, s: &str) -> bool {
+        self.find(s, true).is_some()
+    }
+
     pub fn find(&self, s: &str, must_be_terminal: bool) -> Option<&TNode<T>> {
         let lpo = LongestPrefOpts {
             must_be_terminal,
@@ -441,6 +445,17 @@ mod tests {
         t.add("c", &Some(1)).unwrap();
         t.add("d", &Some(1)).unwrap();
         assert_eq!(t.pp(false), "a\n b\nc\nd\n")
+    }
+
+    #[test]
+    fn contains_key() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        assert!(t.contains_key("a"));
+
+        t.add("abc", &Some(2)).unwrap();
+        assert!(!t.contains_key("b"));
+        assert!(t.contains_key("abc"));
     }
 
     #[test]
