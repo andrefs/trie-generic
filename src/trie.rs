@@ -591,34 +591,34 @@ mod tests {
         assert!(t.is_empty());
     }
 
-    //    #[test]
-    //    fn remove_non_terminal() {
-    //        let mut t = Trie::new(None);
-    //        t.add("a", Some(1));
-    //        t.add("abc", Some(2));
-    //        t.remove("abc", false);
-    //        println!("{}", t.pp(true));
-    //        let expected = "a";
-    //        assert_eq!(t.pp(false), expected);
-    //    }
-    //    #[test]
-    //    fn remove_subtree() {
-    //        let mut t = Trie::new(None);
-    //        t.add("a", Some(1));
-    //        t.add("abc", Some(2));
-    //        t.remove("ab", true);
-    //        println!("{}", t.pp(true));
-    //        let expected = "a";
-    //        assert_eq!(t.pp(false), expected);
-    //    }
-    //    #[test]
-    //    fn remove_non_existing() {
-    //        let mut t = Trie::new(None);
-    //        t.add("a", Some(1));
-    //        t.add("abc", Some(2));
-    //        let expected = t.pp(false);
-    //        t.remove("xyz", true);
-    //        println!("{}", t.pp(true));
-    //        assert_eq!(t.pp(false), expected);
-    //    }
+    #[test]
+    fn remove_non_terminal() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        t.add("abc", &Some(2)).unwrap();
+        t.remove("abc", false);
+        println!("{}", t.pp(true));
+        let expected = "a\n";
+        assert_eq!(t.pp(false), expected);
+    }
+    #[test]
+    fn remove_subtree() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        t.add("abc", &Some(2)).unwrap();
+        t.remove("ab", true);
+        println!("{}", t.pp(true));
+        let expected = "a\n";
+        assert_eq!(t.pp(false), expected);
+    }
+    #[test]
+    fn remove_non_existing() {
+        let mut t = TNode::Empty;
+        t.add("a", &Some(1)).unwrap();
+        t.add("abc", &Some(2)).unwrap();
+        let expected = t.pp(false);
+        t.remove("xyz", true);
+        println!("{}", t.pp(true));
+        assert_eq!(t.pp(false), expected);
+    }
 }
