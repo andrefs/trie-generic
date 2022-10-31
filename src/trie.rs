@@ -178,7 +178,7 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
         }
     }
 
-    pub fn find(&mut self, s: &str, must_be_terminal: bool) -> Option<&TNode<T>> {
+    pub fn find(&self, s: &str, must_be_terminal: bool) -> Option<&TNode<T>> {
         let lpo = LongestPrefOpts {
             must_be_terminal,
             must_match_fully: true,
@@ -315,6 +315,51 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
                     res.push_str(v.pp_fn(indent + 1, print_content).as_str());
                 }
                 res
+            }
+        }
+    }
+
+    fn remove(&mut self, str_left: &'a str, remove_subtree: bool) -> bool {
+        let first_char = str_left.chars().next().unwrap();
+        let rest = &str_left[first_char.len_utf8()..];
+
+        match self {
+            TNode::Empty | TNode::Leaf(_) => {
+                return false;
+            }
+            TNode::Node(node) => {
+                if !node.children.contains_key(&first_char) {
+                    return false;
+                }
+
+                if rest.is_empty() {
+                    match node.children.get_mut(&first_char).unwrap() {
+                        TNode::Leaf(_) => {
+                            node.children.remove(&first_char);
+                            return true;
+                        }
+                        TNode::Empty => {
+                            panic!("Something wrong")
+                        }
+                        TNode::Node(sub_node) => {
+                            if remove_subtree {
+                                node.children.remove(&first_char);
+                                return true;
+                            }
+                            if !sub_node.is_terminal {
+                                return false;
+                            }
+                            sub_node.is_terminal = false;
+                            return true;
+                        }
+                    }
+                } else {
+                    return node
+                        .children
+                        .get_mut(&first_char)
+                        .unwrap()
+                        .remove(rest, remove_subtree);
+                }
             }
         }
     }
@@ -477,16 +522,17 @@ mod tests {
         let pref = t.find("this is more wo", true);
         assert!(pref.is_none())
     }
-    //    #[test]
-    //    fn remove() {
-    //        let mut t = Trie::new(None);
-    //        t.add("ab", Some(1));
-    //        t.add("abc", Some(2));
-    //        t.remove("abc", false);
-    //        println!("{}", t.pp(true));
-    //        let expected = "ab";
-    //        assert_eq!(t.pp(false), expected);
-    //    }
+    // #[test]
+    // fn remove() {
+    //     let mut t = Trie::new(None);
+    //     t.add("ab", Some(1));
+    //     t.add("abc", Some(2));
+    //     t.remove("abc", false);
+    //     println!("{}", t.pp(true));
+    //     let expected = "ab";
+    //     assert_eq!(t.pp(false), expected);
+    // }
+
     //    #[test]
     //    fn remove_non_terminal() {
     //        let mut t = Trie::new(None);
