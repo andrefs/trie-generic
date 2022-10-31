@@ -119,6 +119,14 @@ impl<'a, T: Display + Debug> TNode<'a, T> {
         }
     }
 
+    fn is_empty(&self) -> bool {
+        match self {
+            TNode::Empty => true,
+            TNode::Leaf(leaf) => leaf.content.is_none(),
+            TNode::Node(node) => node.content.is_none() && node.children.is_empty(),
+        }
+    }
+
     fn content(&self) -> &Option<T> {
         match self {
             TNode::Leaf(leaf) => leaf.content,
